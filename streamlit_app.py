@@ -2,95 +2,81 @@ import streamlit as st
 import joblib
 import pandas as pd
 
-# Title of the application
-st.title("Araba Tahmin Uygulaması")
+st.title("Ev Fiyatı Tahmin Uygulaması") 
+#st.header("Evinizin Fiyatını Tahmin Edin")
+st.image("ev.jpg", width=600)
 
-# Header
-st.header("Arabanızın Fiyatını Tahmin Edin")
+min_OverallQual = 1
+max_OverallQual = 10
+OverallQual = st.slider("Genel Kalite Değeri:", min_value=min_OverallQual, max_value=max_OverallQual)
 
-# Subheader
-st.subheader("Bu uygulamayı kullanarak arabınızın değerini öğrenin.")
+GarageCars = st.selectbox("Garaj Kapasitesi", [0, 1, 2, 3, 4])
 
+CentralAir = st.selectbox('Merkezi Klima:', ['N', 'Y'])
 
-st.image("car_img.jpg", caption="Kirmizi Araba", width=400)
+KitchenQual = st.selectbox('Mutfak Kalitesi:', ['Ex', 'Gd', 'TA', 'Fa', 'Po'])
 
-st.write("İlgilendiğiniz aracın tahmini piyasa değerini aşağıda görebilirsiniz.")
+GrLivArea = st.number_input("Zemin Üstü Yaşam Alanı", 0, 10000)
 
+TotalBsmtSF = st.number_input("Toplam Bodrum Katı Alanı", 0, 10000)
 
-columns = joblib.load("features_list.joblib")
+FireplaceQu = st.selectbox('Şömine Kalitesi:', ['Ex', 'Gd', 'TA', 'Fa', 'Po', 'NA'])
 
-#st.write(columns)
+LandContour = st.selectbox('Arazi Durumu:', ['Lvl', 'Bnk', 'HLS', 'Low'])
 
-min_year = 2003   # get_min_year()
-max_year = 2018   # get_max_year()
-year = st.number_input("Yil:", min_value=min_year, max_value=max_year)
+ExterQual = st.selectbox('Dış Yüzey Kalitesi:', ['Ex', 'Gd', 'TA', 'Fa', 'Po'])
 
-min_present_price = 0.1
-max_present_price = 100.0
-present_price = st.slider("Present_Price:", min_value=min_present_price, max_value=max_present_price)
+BsmtFinSF1 = st.number_input("Bitmiş Alan", 0, 5000)
 
-min_km = 500
-max_km = 500_000
-km = st.slider("km:", min_value=min_km, max_value=max_km)
+GarageType = st.selectbox('Garaj Türü:', ['2Types', 'Attchd', 'Basment', 'BuiltIn', 'CarPort', 'Detchd','NA'])
 
-
-fuel_type = st.selectbox(
-    'Yakıt tipi:',
-    ['Benzin', 'Dizel', 'LPG'])
-
-if fuel_type == "Benzin":
-    fuel = 'Petrol'
-elif fuel_type == 'Dizel':
-    fuel = 'Diesel'
-else:
-    fuel = 'CNG'
-
-st.write('You selected:', fuel_type)
-
-seller_type = st.selectbox(
-    'Owner:',
-    ['Galeri', 'Sahibinden'])
-
-if seller_type == 'Galeri':
-    seller = 'Dealer'
-elif seller_type ==  'Sahibinden':
-    seller = 'Individual'
+sample_one = {
+    "OverallQual": OverallQual,
+    "GarageCars": GarageCars,
+    "CentralAir": CentralAir,
+    "KitchenQual": KitchenQual,
+    "GrLivArea": GrLivArea,
+    "TotalBsmtSF": TotalBsmtSF,
+    "FireplaceQu": FireplaceQu,
+    "LandContour": LandContour,
+    "ExterQual": ExterQual,
+    "BsmtFinSF1": BsmtFinSF1,
+    "GarageType": GarageType
+}
 
 
-transmission = st.selectbox(
-    'Vites:',
-    ['Manual', 'Automatic'])
+
+df_s = pd.DataFrame(sample_one, index=[0])
+df_s
+
+# ordinal encoder yükle
+from sklearn.preprocessing import OrdinalEncoder
+ordinal_columns = joblib.load("ordinal_columns.joblib")
+for col in ordinal_columns:
+    encoder = joblib.load(f"{col}_encoder.joblib")
+    transformed_column = encoder.transform(df_s[[col]])
+    df_s[col] = transformed_column
 
 
-owner = st.selectbox(
-    'Sahibi:',
-    [0,1,3])
+# label encoder yükle
+from sklearn.preprocessing import LabelEncoder
+label_columns = joblib.load("labelEncoder_columns.joblib")     
+for col in label_columns:
+    le = joblib.load(f"{col}_encoder.joblib")
+    transformed_column = le.transform(df_s[col])
+    df_s[col] = transformed_column
 
-sample_one = [{
-"Year":                 year,
-"Present_Price":        present_price,
-"Kms_Driven":           km,
-"Fuel_Type":            fuel,
-"Seller_Type":          seller,
-"Transmission":         transmission,
-"Owner":                owner
-    }]
+get_dummies_columns = joblib.load("dummies_columns.joblib")
+df_dummies = pd.get_dummies(df_s, drop_first=True, dtype=int).reindex(columns=get_dummies_columns, fill_value=0)
 
 
-df_s = pd.DataFrame(sample_one)
-st.dataframe(df_s)
+import pandas as pd
+yeni_df = df_s.drop(columns="CentralAir")
+yeni_df = pd.concat([yeni_df, df_dummies], axis=1)
 
 
-df_s["Year"] = max_year - df_s["Year"]
-df_s = pd.get_dummies(df_s).reindex(columns=columns, fill_value=0)
+model = joblib.load("model.joblib")
 
-scaler = joblib.load(open("scaler.joblib","rb"))
-model = joblib.load(open("xgb_model.joblib","rb"))
-df_s = scaler.transform(df_s)
+pred_price = round(model.predict(yeni_df)[0])
+st.write('Evinizin Değeri:', pred_price)
 
-if st.button('Tahmin Yap!'):
-    tahmin = round(model.predict(df_s)[0] * 10_000)
-
-    st.write('Arabinizin tahimini degeri:', tahmin)
-else:
-    st.write('Goodbye')
