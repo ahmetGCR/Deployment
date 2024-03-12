@@ -2,92 +2,95 @@ import streamlit as st
 import joblib
 import pandas as pd
 
-st.title("Ev Fiyatı Tahmin Uygulaması")
-#st.header("Evinizin Fiyatını Tahmin Edin")
-st.image("ev.jpg", width=600)
+# Title of the application
+st.title("Araba Tahmin Uygulaması")
 
-min_OverallQual = 1
-max_OverallQual = 10
-OverallQual = st.slider("Genel Kalite Değeri:", min_value=min_OverallQual, max_value=max_OverallQual)
+# Header
+st.header("Arabanızın Fiyatını Tahmin Edin")
 
-GarageCars = st.selectbox("Garaj Kapasitesi", [0, 1, 2, 3, 4])
-
-CentralAir = st.selectbox('Merkezi Klima:', ['Var', 'Yok'])
-
-KitchenQual = st.selectbox('Mutfak Kalitesi:', ['Mükemmel', 'İyi', 'Ortalama', 'Orta', 'Zayıf'])
-
-GrLivArea = st.number_input("Zemin Üstü Yaşam Alanı", 0, 10000)
-
-TotalBsmtSF = st.number_input("Toplam Bodrum Katı Alanı", 0, 10000)
-
-FireplaceQu = st.selectbox('Şömine Kalitesi:', ['Mükemmel', 'İyi', 'Ortalama', 'Orta', 'Zayıf', 'Yok'])
-
-LandContour = st.selectbox('Arazi Durumu:', ['Düz Seviye', 'Yamaçlı', 'Yamaç', 'Alçaklık'])
-
-ExterQual = st.selectbox('Dış Yüzey Kalitesi:', ['Mükemmel', 'İyi', 'Ortalama', 'Orta', 'Zayıf'])
-
-BsmtFinSF1 = st.number_input("Bitmiş Alan", 0, 5000)
-
-GarageType = st.selectbox('Garaj Türü:', ['Birden fazla türde garaj', 'Ev ile bağlantılı', 'Bodrum Katında Garaj', 'Ev İçine Yapılmış', 'Araba Portu', 'Evden ayrı'])
-
-sample_one = {
-    "OverallQual": OverallQual,
-    "GarageCars": GarageCars,
-    "CentralAir": CentralAir,
-    "KitchenQual": KitchenQual,
-    "GrLivArea": GrLivArea,
-    "TotalBsmtSF": TotalBsmtSF,
-    "FireplaceQu": FireplaceQu,
-    "LandContour": LandContour,
-    "ExterQual": ExterQual,
-    "BsmtFinSF1": BsmtFinSF1,
-    "GarageType": GarageType
-}
-
-df = pd.DataFrame(sample_one, index=[0])
-
-kitchen_qual_mapping = {'Mükemmel': 5, 'İyi': 4, 'Ortalama': 3, 'Orta': 2, 'Zayıf': 1}
-df['KitchenQual'] = df['KitchenQual'].map(kitchen_qual_mapping)
-
-fireplace_qu_mapping = {'Mükemmel': 5, 'İyi': 4, 'Ortalama': 3, 'Orta': 2, 'Zayıf': 1, 'Yok': 0}
-df['FireplaceQu'] = df['FireplaceQu'].map(fireplace_qu_mapping)
-
-exter_qual_mapping = {'Mükemmel': 5, 'İyi': 4, 'Ortalama': 3, 'Orta': 2, 'Zayıf': 1}
-df['ExterQual'] = df['ExterQual'].map(exter_qual_mapping)
+# Subheader
+st.subheader("Bu uygulamayı kullanarak arabınızın değerini öğrenin.")
 
 
-central_air_mapping = {'Var': 1, 'Yok': 0}
-df['CentralAir'] = df['CentralAir'].map(central_air_mapping)
+st.image("car_img.jpg", caption="Kirmizi Araba", width=400)
+
+st.write("İlgilendiğiniz aracın tahmini piyasa değerini aşağıda görebilirsiniz.")
 
 
-land_contour_mapping = {'Düz Seviye': 0, 'Yamaçlı': 1, 'Yamaç': 2, 'Alçaklık': 3}
-df['LandContour'] = df['LandContour'].map(land_contour_mapping)
+columns = joblib.load("features_list.joblib")
 
-garage_type_mapping = {'Birden fazla türde garaj': 0, 'Ev ile bağlantılı': 1, 'Bodrum Katında Garaj': 2, 'Ev İçine Yapılmış': 3, 'Araba Portu': 4, 'Evden ayrı': 5}
-df['GarageType'] = df['GarageType'].map(garage_type_mapping)
+#st.write(columns)
 
-st.dataframe(df)
+min_year = 2003   # get_min_year()
+max_year = 2018   # get_max_year()
+year = st.number_input("Yil:", min_value=min_year, max_value=max_year)
 
-model = joblib.load("model.joblib")
+min_present_price = 0.1
+max_present_price = 100.0
+present_price = st.slider("Present_Price:", min_value=min_present_price, max_value=max_present_price)
+
+min_km = 500
+max_km = 500_000
+km = st.slider("km:", min_value=min_km, max_value=max_km)
+
+
+fuel_type = st.selectbox(
+    'Yakıt tipi:',
+    ['Benzin', 'Dizel', 'LPG'])
+
+if fuel_type == "Benzin":
+    fuel = 'Petrol'
+elif fuel_type == 'Dizel':
+    fuel = 'Diesel'
+else:
+    fuel = 'CNG'
+
+st.write('You selected:', fuel_type)
+
+seller_type = st.selectbox(
+    'Owner:',
+    ['Galeri', 'Sahibinden'])
+
+if seller_type == 'Galeri':
+    seller = 'Dealer'
+elif seller_type ==  'Sahibinden':
+    seller = 'Individual'
+
+
+transmission = st.selectbox(
+    'Vites:',
+    ['Manual', 'Automatic'])
+
+
+owner = st.selectbox(
+    'Sahibi:',
+    [0,1,3])
+
+sample_one = [{
+"Year":                 year,
+"Present_Price":        present_price,
+"Kms_Driven":           km,
+"Fuel_Type":            fuel,
+"Seller_Type":          seller,
+"Transmission":         transmission,
+"Owner":                owner
+    }]
+
+
+df_s = pd.DataFrame(sample_one)
+st.dataframe(df_s)
+
+
+df_s["Year"] = max_year - df_s["Year"]
+df_s = pd.get_dummies(df_s).reindex(columns=columns, fill_value=0)
+
+scaler = joblib.load(open("scaler.joblib","rb"))
+model = joblib.load(open("xgb_model.joblib","rb"))
+df_s = scaler.transform(df_s)
 
 if st.button('Tahmin Yap!'):
-    tahmin = round(model.predict(df)[0])
-    st.write('Evinizin tahmini degeri:',tahmin)
+    tahmin = round(model.predict(df_s)[0] * 10_000)
 
-
-
-
-
-# from sklearn.preprocessing import LabelEncoder
-# labelEncoder = ['LandContour','GarageType']
-# le_dict = {}
-# for column in labelEncoder:
-#     le = LabelEncoder()
-#     df[column] = le.fit_transform(df[column])
-#     le_dict[column] = le
-
-# df = pd.get_dummies(df, drop_first=True,dtype =int, columns=['CentralAir','LandSlope'])
-
-
-# for col in ['GarageQual','ExterQual','KitchenQual','FireplaceQu']:
-#     df[col].replace({'NA':0, 'Po':1, 'Fa':2, 'TA':3, 'Gd':4, 'Ex':5}, inplace=True)
+    st.write('Arabinizin tahimini degeri:', tahmin)
+else:
+    st.write('Goodbye')
